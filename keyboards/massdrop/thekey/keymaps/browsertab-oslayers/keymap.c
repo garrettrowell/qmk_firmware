@@ -91,6 +91,12 @@ void matrix_scan_user(void) {
     SEQ_ONE_KEY(PASTE) {
       layer_move(MAC);
     }
+    SEQ_ONE_KEY(TD(TD_LIN_COPY)) {
+      layer_move(LINUX);
+    }
+    SEQ_ONE_KEY(TD(TD_LIN_PASTE)) {
+      layer_move(MAC);
+    }
 
   }
 }
