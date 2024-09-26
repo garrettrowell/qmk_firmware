@@ -86,7 +86,7 @@ void mseBtn3_finished(tap_dance_state_t *state, void *user_data) {
     switch (td_state) {
         case TD_SINGLE_TAP:
             xprintf("single tap fin\n");
-            register_code16(KC_BTN3);
+            tap_code16(KC_BTN3);
         break;
         case TD_SINGLE_HOLD:
             xprintf("HOLDING WHEEL\n");
@@ -94,6 +94,7 @@ void mseBtn3_finished(tap_dance_state_t *state, void *user_data) {
         break;
 	case TD_DOUBLE_TAP:
             xprintf("Double tap wheel fin\n");
+	    toggle_drag_scroll();
         break;
         default:
         break;
@@ -102,10 +103,6 @@ void mseBtn3_finished(tap_dance_state_t *state, void *user_data) {
 
 void mseBtn3_reset(tap_dance_state_t *state, void *user_data) {
     switch (td_state) {
-        case TD_SINGLE_TAP:
-            xprintf("single tap reset\n");
-            unregister_code16(KC_BTN3);
-        break;
         case TD_SINGLE_HOLD:
             xprintf("wheel released\n");
 	    toggle_drag_scroll();
