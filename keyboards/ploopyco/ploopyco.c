@@ -132,8 +132,12 @@ void toggle_drag_scroll(void) {
     is_drag_scroll ^= 1;
 }
 
-void cycle_dpi(void) {
-    keyboard_config.dpi_config = (keyboard_config.dpi_config + 1) % DPI_OPTION_SIZE;
+void cycle_dpi(char increment_decrement) {
+    if (increment_decrement == 0) {
+        keyboard_config.dpi_config = (keyboard_config.dpi_config + 1) % DPI_OPTION_SIZE;
+    } else {
+        keyboard_config.dpi_config = (keyboard_config.dpi_config == 0) ? (DPI_OPTION_SIZE - 1) : (keyboard_config.dpi_config - 1);
+    }
     eeconfig_update_kb(keyboard_config.raw);
     pointing_device_set_cpi(dpi_array[keyboard_config.dpi_config]);
 }
@@ -184,7 +188,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
     }
 
     if (keycode == DPI_CONFIG && record->event.pressed) {
-	cycle_dpi();
+	cycle_dpi(0);
     }
 
     if (keycode == DRAG_SCROLL) {

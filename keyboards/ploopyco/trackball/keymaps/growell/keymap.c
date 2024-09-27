@@ -19,11 +19,17 @@
 
 // Tap Dance keycodes
 enum td_keycodes {
-    MSE_BTN3_DRAG // Hold scroll wheel for momentary dragscroll
+    MSE_BTN2, // Hold scroll wheel for momentary dragscroll. Double tap toggles dragscroll.
+    MSE_BTN3, // If held allow DPI changes. Double tap toggles precision mode.
 };
 
-// Define a state for when we're holding down BTN3
+// Define a state for when we're holding down a button
+bool btn2_held = false;
 bool btn3_held = false;
+
+// Define a state for our modes
+bool drag_scroll    = false;
+bool precision_mode = false;
 
 // Define a type containing as many tapdance states as you need
 typedef enum {
@@ -43,12 +49,44 @@ static td_state_t td_state;
 td_state_t curr_dance(tap_dance_state_t *state);
 
 // `finished` and `reset` functions for each tapdance keycode
+void mseBtn2_finished(tap_dance_state_t *state, void *user_data);
+void mseBtn2_reset(tap_dance_state_t *state, void *user_data);
 void mseBtn3_finished(tap_dance_state_t *state, void *user_data);
 void mseBtn3_reset(tap_dance_state_t *state, void *user_data);
 
+// Define custom keycodes for increment/decrement dpi
+enum custom_keycodes {
+    DPI_INC = SAFE_RANGE,
+    DPI_DEC,
+};
+
+// Process custom keycodes
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case DPI_INC:
+            if (record->event.pressed) {
+                cycle_dpi(0);
+                xprintf("DPI set to: %u\n", pmw33xx_get_cpi(0));
+            } else {
+                // When keycode is released
+            }
+            break;
+        case DPI_DEC:
+            if (record->event.pressed) {
+                cycle_dpi(1);
+                xprintf("DPI set to: %u\n", pmw33xx_get_cpi(0));
+            } else {
+                // When keycode is released
+            }
+            break;
+    }
+    return true;
+};
+
 // Keymap layer(s)
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
-    [0] = LAYOUT( KC_BTN1, TD(MSE_BTN3_DRAG), KC_BTN5, KC_BTN4, KC_BTN2 ),
+     [0] = LAYOUT( KC_BTN1, TD(MSE_BTN2), TD(MSE_BTN3), KC_BTN4, KC_BTN2),
+     [1] = LAYOUT( _______, _______, _______, DPI_INC, DPI_DEC),
 };
 
 // Determine the tapdance state to return
@@ -80,39 +118,109 @@ td_state_t cur_dance(tap_dance_state_t *state) {
     }
 }
 
+//
 // Handle the possible states for each tapdance keycodes you define
+//
+
+// BTN2
+// Single tap calls KC_BTN3 (mouse wheel click)
+// Holding enables momentary drag scroll
+// Double tap toggles drag scroll
+void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
+    td_state = cur_dance(state);
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            xprintf("BTN2 Single Tap\n");
+            tap_code16(KC_BTN3);
+            break;
+        case TD_SINGLE_HOLD:
+            xprintf("BTN2 HOLD\n");
+            btn2_held   = true;
+            drag_scroll = true;
+            toggle_drag_scroll();
+            break;
+        case TD_DOUBLE_TAP:
+            xprintf("BTN2 Double Tap\n");
+            drag_scroll ^= 1;
+            toggle_drag_scroll();
+            break;
+        default:
+            break;
+    }
+}
+
+void mseBtn2_reset(tap_dance_state_t *state, void *user_data) {
+    switch (td_state) {
+        case TD_SINGLE_HOLD:
+            xprintf("BTN2 Released\n");
+            btn2_held   = false;
+            drag_scroll = false;
+            toggle_drag_scroll();
+            break;
+        default:
+            break;
+    }
+}
+
+// BTN3
+// Single tap KC_BTN5 (browser forward)
+// Holding enables DPI configuration
+// Double tap toggles precision mode
 void mseBtn3_finished(tap_dance_state_t *state, void *user_data) {
     td_state = cur_dance(state);
     switch (td_state) {
         case TD_SINGLE_TAP:
-            xprintf("single tap fin\n");
-            tap_code16(KC_BTN3);
-        break;
+            xprintf("BTN3 Single Tap\n");
+            tap_code16(KC_BTN5);
+            break;
         case TD_SINGLE_HOLD:
-            xprintf("HOLDING WHEEL\n");
-	    toggle_drag_scroll();
-        break;
-	case TD_DOUBLE_TAP:
-            xprintf("Double tap wheel fin\n");
-	    toggle_drag_scroll();
-        break;
+            xprintf("BTN3 HOLD\n");
+            layer_on(1);
+            btn3_held = true;
+            break;
+        case TD_DOUBLE_TAP:
+            xprintf("BTN3 Double Tap\n");
+            if (!precision_mode) {
+                xprintf("precision_mode enabled\n");
+                pmw33xx_set_cpi(0, (dpi_array[keyboard_config.dpi_config] / 2));
+                xprintf("DPI set to: %u\n", pmw33xx_get_cpi(0));
+                precision_mode = true;
+            } else {
+                xprintf("precision_mode disabled\n");
+                pmw33xx_set_cpi(0, dpi_array[keyboard_config.dpi_config]);
+                xprintf("DPI set to: %u\n", pmw33xx_get_cpi(0));
+                precision_mode = false;
+            }
+            break;
         default:
-        break;
+            break;
     }
 }
 
 void mseBtn3_reset(tap_dance_state_t *state, void *user_data) {
     switch (td_state) {
         case TD_SINGLE_HOLD:
-            xprintf("wheel released\n");
-	    toggle_drag_scroll();
-        break;
+            xprintf("BTN3 Released\n");
+            btn3_held = false;
+            layer_off(1);
+            break;
         default:
-        break;
+            break;
     }
 }
 
 // Define `ACTION_TAP_DANCE_FN_ADVANCED()` for each tapdance keycode, passing in the `finished` and `reset` functions
 tap_dance_action_t tap_dance_actions[] = {
-    [MSE_BTN3_DRAG] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, mseBtn3_finished, mseBtn3_reset)
+    [MSE_BTN2] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, mseBtn2_finished, mseBtn2_reset),
+    [MSE_BTN3] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, mseBtn3_finished, mseBtn3_reset),
+};
+
+// Set a long-ish tapping term for tap-dance keys
+uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case QK_TAP_DANCE ... QK_TAP_DANCE_MAX:
+            return 275;
+        default:
+            return TAPPING_TERM;
+    }
 };

@@ -50,6 +50,3 @@
 #define PLOOPY_DRAGSCROLL_FIXED 1
 #define PLOOPY_DRAGSCROLL_INVERT 1
 #define PLOOPY_DRAGSCROLL_DPI 100
-
-// Makes debugging take less space. must use `uprint();`
-#define NO_DEBUG
