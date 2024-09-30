@@ -45,12 +45,29 @@
 #ifndef PLOOPY_DPI_DEFAULT
 #    define PLOOPY_DPI_DEFAULT 0
 #endif
-#ifndef PLOOPY_DRAGSCROLL_DIVISOR_H
-#    define PLOOPY_DRAGSCROLL_DIVISOR_H 8.0
+
+#ifndef PLOOPY_DRAGSCROLL_DIVISORS_H
+#    define PLOOPY_DRAGSCROLL_DIVISORS_H \
+        { 8, 9, 10 }
+#    ifndef PLOOPY_DRAGSCROLL_DEFAULT_H
+#        define PLOOPY_DRAGSCROLL_DEFAULT_H 1
+#    endif
 #endif
-#ifndef PLOOPY_DRAGSCROLL_DIVISOR_V
-#    define PLOOPY_DRAGSCROLL_DIVISOR_V 8.0
+#ifndef PLOOPY_DRAGSCROLL_DEFAULT_H
+#    define PLOOPY_SCROLL_DEFAULT_H 0
 #endif
+
+#ifndef PLOOPY_DRAGSCROLL_DIVISORS_V
+#    define PLOOPY_DRAGSCROLL_DIVISORS_V \
+        { 8, 9, 10 }
+#    ifndef PLOOPY_DRAGSCROLL_DEFAULT_V
+#        define PLOOPY_DRAGSCROLL_DEFAULT_V 1
+#    endif
+#endif
+#ifndef PLOOPY_DRAGSCROLL_DEFAULT_V
+#    define PLOOPY_DRAGSCROLL_DEFAULT_V 0
+#endif
+
 #ifndef ENCODER_BUTTON_ROW
 #    define ENCODER_BUTTON_ROW 0
 #endif
@@ -61,6 +78,11 @@
 keyboard_config_t keyboard_config;
 uint16_t          dpi_array[] = PLOOPY_DPI_OPTIONS;
 #define DPI_OPTION_SIZE ARRAY_SIZE(dpi_array)
+uint16_t          dragscroll_divisors_h[] = PLOOPY_DRAGSCROLL_DIVISORS_H;
+uint16_t          dragscroll_divisors_v[] = PLOOPY_DRAGSCROLL_DIVISORS_V;
+#define DRAGSCROLL_DIVISORS_H_SIZE ARRAY_SIZE(dragscroll_divisors_h)
+#define DRAGSCROLL_DIVISORS_V_SIZE ARRAY_SIZE(dragscroll_divisors_v)
+
 
 // Trackball State
 bool  is_scroll_clicked    = false;
@@ -142,10 +164,28 @@ void cycle_dpi(char increment_decrement) {
     pointing_device_set_cpi(dpi_array[keyboard_config.dpi_config]);
 }
 
+void cycle_dragscroll_speed_v(char increment_decrement) {
+    if (increment_decrement == 0) {
+        keyboard_config.dragscroll_v_config = (keyboard_config.dragscroll_v_config + 1) % DRAGSCROLL_DIVISORS_V_SIZE;
+    } else {
+        keyboard_config.dragscroll_v_config = (keyboard_config.dragscroll_v_config == 0) ? (DRAGSCROLL_DIVISORS_V_SIZE - 1) : (keyboard_config.dragscroll_v_config - 1);
+    }
+    eeconfig_update_kb(keyboard_config.raw);
+}
+
+void cycle_dragscroll_speed_h(char increment_decrement) {
+    if (increment_decrement == 0) {
+        keyboard_config.dragscroll_h_config = (keyboard_config.dragscroll_h_config + 1) % DRAGSCROLL_DIVISORS_H_SIZE;
+    } else {
+        keyboard_config.dragscroll_h_config = (keyboard_config.dragscroll_h_config == 0) ? (DRAGSCROLL_DIVISORS_H_SIZE - 1) : (keyboard_config.dragscroll_h_config - 1);
+    }
+    eeconfig_update_kb(keyboard_config.raw);
+}
+
 report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
     if (is_drag_scroll) {
-        scroll_accumulated_h += (float)mouse_report.x / PLOOPY_DRAGSCROLL_DIVISOR_H;
-        scroll_accumulated_v += (float)mouse_report.y / PLOOPY_DRAGSCROLL_DIVISOR_V;
+        scroll_accumulated_h += (float)mouse_report.x / dragscroll_divisors_h[keyboard_config.dragscroll_h_config];
+        scroll_accumulated_v += (float)mouse_report.y / dragscroll_divisors_v[keyboard_config.dragscroll_v_config];
 
         // Assign integer parts of accumulated scroll values to the mouse report
         mouse_report.h = (int8_t)scroll_accumulated_h;
@@ -237,12 +277,18 @@ void pointing_device_init_kb(void) {
     keyboard_config.raw = eeconfig_read_kb();
     if (keyboard_config.dpi_config > DPI_OPTION_SIZE) {
         eeconfig_init_kb();
+    } else if (keyboard_config.dragscroll_h_config > DRAGSCROLL_DIVISORS_H_SIZE) {
+        eeconfig_init_kb();
+    } else if (keyboard_config.dragscroll_v_config > DRAGSCROLL_DIVISORS_V_SIZE) {
+        eeconfig_init_kb();
     }
     pointing_device_set_cpi(dpi_array[keyboard_config.dpi_config]);
 }
 
 void eeconfig_init_kb(void) {
     keyboard_config.dpi_config = PLOOPY_DPI_DEFAULT;
+    keyboard_config.dragscroll_h_config = PLOOPY_DRAGSCROLL_DEFAULT_H;
+    keyboard_config.dragscroll_v_config = PLOOPY_DRAGSCROLL_DEFAULT_V;
     eeconfig_update_kb(keyboard_config.raw);
     eeconfig_init_user();
 }

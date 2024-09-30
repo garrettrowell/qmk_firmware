@@ -24,8 +24,10 @@ enum td_keycodes {
 };
 
 // Define a state for when we're holding down a button
-bool btn2_held = false;
-bool btn3_held = false;
+bool btn2_held        = false;
+bool btn2_double_held = false;
+bool btn3_held        = false;
+bool btn3_double_held = false;
 
 // Define a state for our modes
 bool drag_scroll    = false;
@@ -58,6 +60,10 @@ void mseBtn3_reset(tap_dance_state_t *state, void *user_data);
 enum custom_keycodes {
     DPI_INC = SAFE_RANGE,
     DPI_DEC,
+    DS_V_INC,
+    DS_V_DEC,
+    DS_H_INC,
+    DS_H_DEC,
 };
 
 // Process custom keycodes
@@ -79,6 +85,38 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 // When keycode is released
             }
             break;
+        case DS_V_INC:
+            if (record->event.pressed) {
+                cycle_dragscroll_speed_v(0);
+                xprintf("Dragscroll Speed V Divisor set to: %u\n", dragscroll_divisors_v[keyboard_config.dragscroll_v_config]);
+            } else {
+                // When keycode is released
+            }
+            break;
+        case DS_V_DEC:
+            if (record->event.pressed) {
+                cycle_dragscroll_speed_v(1);
+                xprintf("Dragscroll Speed V Divisor set to: %u\n", dragscroll_divisors_v[keyboard_config.dragscroll_v_config]);
+            } else {
+                // When keycode is released
+            }
+            break;
+        case DS_H_INC:
+            if (record->event.pressed) {
+                cycle_dragscroll_speed_h(0);
+                xprintf("Dragscroll Speed H Divisor set to: %u\n", dragscroll_divisors_h[keyboard_config.dragscroll_h_config]);
+            } else {
+                // When keycode is released
+            }
+            break;
+        case DS_H_DEC:
+            if (record->event.pressed) {
+                cycle_dragscroll_speed_h(1);
+                xprintf("Dragscroll Speed H Divisor set to: %u\n", dragscroll_divisors_h[keyboard_config.dragscroll_h_config]);
+            } else {
+                // When keycode is released
+            }
+            break;
     }
     return true;
 };
@@ -87,6 +125,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      [0] = LAYOUT( KC_BTN1, TD(MSE_BTN2), TD(MSE_BTN3), KC_BTN4, KC_BTN2),
      [1] = LAYOUT( _______, _______, _______, DPI_INC, DPI_DEC),
+     [2] = LAYOUT( _______, _______, _______, DS_V_INC, DS_V_DEC),
+     [3] = LAYOUT( _______, _______, _______, DS_H_INC, DS_H_DEC),
 };
 
 // Determine the tapdance state to return
@@ -126,6 +166,7 @@ td_state_t cur_dance(tap_dance_state_t *state) {
 // Single tap calls KC_BTN3 (mouse wheel click)
 // Holding enables momentary drag scroll
 // Double tap toggles drag scroll
+// Double tap hold enables dragscroll divisor v config
 void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
     td_state = cur_dance(state);
     switch (td_state) {
@@ -134,7 +175,7 @@ void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
             tap_code16(KC_BTN3);
             break;
         case TD_SINGLE_HOLD:
-            xprintf("BTN2 HOLD\n");
+            xprintf("BTN2 Single Tap Hold\n");
             btn2_held   = true;
             drag_scroll = true;
             toggle_drag_scroll();
@@ -144,6 +185,11 @@ void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
             drag_scroll ^= 1;
             toggle_drag_scroll();
             break;
+        case TD_DOUBLE_HOLD:
+            xprintf("BTN2 Double Tap Hold\n");
+            btn2_double_held = true;
+            layer_on(2);
+            break;
         default:
             break;
     }
@@ -152,10 +198,15 @@ void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
 void mseBtn2_reset(tap_dance_state_t *state, void *user_data) {
     switch (td_state) {
         case TD_SINGLE_HOLD:
-            xprintf("BTN2 Released\n");
+            xprintf("BTN2 Single Tap Released\n");
             btn2_held   = false;
             drag_scroll = false;
             toggle_drag_scroll();
+            break;
+        case TD_DOUBLE_HOLD:
+            xprintf("BTN2 Double Tap Released\n");
+            btn2_double_held = false;
+            layer_off(2);
             break;
         default:
             break;
@@ -166,6 +217,7 @@ void mseBtn2_reset(tap_dance_state_t *state, void *user_data) {
 // Single tap KC_BTN5 (browser forward)
 // Holding enables DPI configuration
 // Double tap toggles precision mode
+// Double tap hold enables dragscroll divisor h config
 void mseBtn3_finished(tap_dance_state_t *state, void *user_data) {
     td_state = cur_dance(state);
     switch (td_state) {
@@ -174,7 +226,7 @@ void mseBtn3_finished(tap_dance_state_t *state, void *user_data) {
             tap_code16(KC_BTN5);
             break;
         case TD_SINGLE_HOLD:
-            xprintf("BTN3 HOLD\n");
+            xprintf("BTN3 Single Tap Hold\n");
             layer_on(1);
             btn3_held = true;
             break;
@@ -192,6 +244,11 @@ void mseBtn3_finished(tap_dance_state_t *state, void *user_data) {
                 precision_mode = false;
             }
             break;
+        case TD_DOUBLE_HOLD:
+            xprintf("BTN3 Double Tap Hold\n");
+            btn3_double_held = true;
+            layer_on(3);
+            break;
         default:
             break;
     }
@@ -200,10 +257,14 @@ void mseBtn3_finished(tap_dance_state_t *state, void *user_data) {
 void mseBtn3_reset(tap_dance_state_t *state, void *user_data) {
     switch (td_state) {
         case TD_SINGLE_HOLD:
-            xprintf("BTN3 Released\n");
+            xprintf("BTN3 Single Tap Released\n");
             btn3_held = false;
             layer_off(1);
             break;
+        case TD_DOUBLE_HOLD:
+            xprintf("BTN3 Double Tap Released\n");
+            btn3_double_held = false;
+            layer_off(3);
         default:
             break;
     }
