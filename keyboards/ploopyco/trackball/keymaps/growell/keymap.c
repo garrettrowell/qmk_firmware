@@ -192,7 +192,8 @@ void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
             break;
         case TD_SINGLE_HOLD:
             xprintf("BTN2 Single Tap Hold\n");
-            tap_code16(KC_BTN3);
+            btn2_held = true;
+            register_code16(KC_BTN3);
             break;
         case TD_DOUBLE_TAP:
             xprintf("BTN2 Double Tap\n");
@@ -217,10 +218,15 @@ void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
 
 void mseBtn2_reset(tap_dance_state_t *state, void *user_data) {
     switch (td_state) {
-        case TD_DOUBLE_HOLD:
+        case TD_SINGLE_HOLD:
             xprintf("BTN2 Single Tap Released\n");
-            btn2_held   = false;
-            drag_scroll = false;
+            btn2_held = false;
+            unregister_code16(KC_BTN3);
+            break;
+        case TD_DOUBLE_HOLD:
+            xprintf("BTN2 Double Tap Released\n");
+            btn2_double_held = false;
+            drag_scroll      = false;
             toggle_drag_scroll();
             break;
         case TD_TRIPLE_HOLD:
