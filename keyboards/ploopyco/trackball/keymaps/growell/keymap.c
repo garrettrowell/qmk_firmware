@@ -26,6 +26,7 @@ enum td_keycodes {
 // Define a state for when we're holding down a button
 bool btn2_held        = false;
 bool btn2_double_held = false;
+bool btn2_triple_held = false;
 bool btn3_held        = false;
 bool btn3_double_held = false;
 
@@ -41,7 +42,10 @@ typedef enum {
     TD_SINGLE_HOLD,
     TD_DOUBLE_SINGLE_TAP,
     TD_DOUBLE_HOLD,
-    TD_DOUBLE_TAP
+    TD_DOUBLE_TAP,
+    TD_TRIPLE_SINGLE_TAP,
+    TD_TRIPLE_HOLD,
+    TD_TRIPLE_TAP
 } td_state_t;
 
 // Create a global instance of the tapdance state type
@@ -151,6 +155,17 @@ td_state_t cur_dance(tap_dance_state_t *state) {
             xprintf("TD_DOUBLE_TAP\n");
             return TD_DOUBLE_TAP;
         }
+    } else if (state->count == 3) {
+        if (state->interrupted) {
+            xprintf("TD_TRIPLE_SINGLE_TAP\n");
+            return TD_TRIPLE_SINGLE_TAP;
+        } else if (state->pressed) {
+            xprintf("TD_TRIPLE_HOLD\n");
+            return TD_TRIPLE_HOLD;
+        } else {
+            xprintf("TD_TRIPLE_TAP\n");
+            return TD_TRIPLE_TAP;
+        }
     } else {
         xprintf("TD_UNKNOWN\n");
         // Any number higher than the maximum state value you return above
@@ -164,9 +179,10 @@ td_state_t cur_dance(tap_dance_state_t *state) {
 
 // BTN2
 // Single tap calls KC_BTN3 (mouse wheel click)
-// Holding enables momentary drag scroll
+// Holding simply holds KC_BTN3
 // Double tap toggles drag scroll
-// Double tap hold enables dragscroll divisor v config
+// Double tap hold enables momentary drag scroll
+// Triple tap hold enables dragscroll divisor v config
 void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
     td_state = cur_dance(state);
     switch (td_state) {
@@ -176,9 +192,7 @@ void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
             break;
         case TD_SINGLE_HOLD:
             xprintf("BTN2 Single Tap Hold\n");
-            btn2_held   = true;
-            drag_scroll = true;
-            toggle_drag_scroll();
+            tap_code16(KC_BTN3);
             break;
         case TD_DOUBLE_TAP:
             xprintf("BTN2 Double Tap\n");
@@ -186,8 +200,14 @@ void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
             toggle_drag_scroll();
             break;
         case TD_DOUBLE_HOLD:
-            xprintf("BTN2 Double Tap Hold\n");
+            xprintf("BTN2 Single Tap Hold\n");
             btn2_double_held = true;
+            drag_scroll      = true;
+            toggle_drag_scroll();
+            break;
+        case TD_TRIPLE_HOLD:
+            xprintf("BTN2 Triple Tap Hold\n");
+            btn2_triple_held = true;
             layer_on(2);
             break;
         default:
@@ -197,15 +217,15 @@ void mseBtn2_finished(tap_dance_state_t *state, void *user_data) {
 
 void mseBtn2_reset(tap_dance_state_t *state, void *user_data) {
     switch (td_state) {
-        case TD_SINGLE_HOLD:
+        case TD_DOUBLE_HOLD:
             xprintf("BTN2 Single Tap Released\n");
             btn2_held   = false;
             drag_scroll = false;
             toggle_drag_scroll();
             break;
-        case TD_DOUBLE_HOLD:
-            xprintf("BTN2 Double Tap Released\n");
-            btn2_double_held = false;
+        case TD_TRIPLE_HOLD:
+            xprintf("BTN2 Triple Tap Released\n");
+            btn2_triple_held = false;
             layer_off(2);
             break;
         default:

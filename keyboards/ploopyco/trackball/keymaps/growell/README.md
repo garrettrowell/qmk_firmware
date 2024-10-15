@@ -36,9 +36,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 |Tap Dance State|Description|
 |---|---|
 |TD_SINGLE_TAP|tap_code16(KC_BTN3)|
-|TD_SINGLE_HOLD|Enable DragScroll until released.|
+|TD_SINGLE_HOLD|simply hold KC_BTN3|
 |TD_DOUBLE_TAP|Toggle DragScroll.|
-|TD_DOUBLE_HOLD|Enable Layer 2 until released.|
+|TD_DOUBLE_HOLD|Enable DragScroll until released.|
+|TD_TRIPLE_HOLD|Enable Layer 2 until released.|
 
 ### MSE_BTN3 Behavior
 
